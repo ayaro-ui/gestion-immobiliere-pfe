@@ -7,23 +7,31 @@ use Illuminate\Http\Request;
 
 class FavoriController extends Controller
 {
-    public function index() {
-        return Favori::with(['user','bien'])->get();
+    public function index(Request $request) {
+        return Favori::with(['bien.images'])->get();
     }
 
     public function store(Request $request) {
-        $favori = Favori::create($request->all());
-        return response()->json($favori, 201);
-    }
+        $request->validate([
+            'id_bien' => 'required|integer',
+            'id_user' => 'required|integer',
+        ]);
 
-    public function show($id) {
-        return Favori::with(['user','bien'])->findOrFail($id);
-    }
+        // Éviter les doublons
+        $existing = Favori::where('id_bien', $request->id_bien)
+                          ->where('id_user', $request->id_user)
+                          ->first();
+        if ($existing) {
+            return response()->json($existing, 200);
+        }
 
-    public function update(Request $request, $id) {
-        $favori = Favori::findOrFail($id);
-        $favori->update($request->all());
-        return response()->json($favori, 200);
+        $favori = Favori::create([
+            'id_bien'    => $request->id_bien,
+            'id_user'    => $request->id_user,
+            'date_ajout' => now()->toDateString(),
+        ]);
+
+        return response()->json($favori->load('bien.images'), 201);
     }
 
     public function destroy($id) {

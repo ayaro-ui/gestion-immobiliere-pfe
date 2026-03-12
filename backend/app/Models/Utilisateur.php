@@ -7,10 +7,12 @@ use App\Models\Role;
 use App\Models\BienImmobilier;
 use App\Models\Contrat;
 use App\Models\Favori;
+use Laravel\Sanctum\HasApiTokens;
 
 class Utilisateur extends Model
 {
-    protected $table = 'utilisateur'; // 👈 sans s
+    use HasApiTokens;
+    protected $table = 'utilisateur'; 
     protected $primaryKey = 'id_user';
     public $timestamps = false;
  
@@ -22,6 +24,9 @@ class Utilisateur extends Model
         'telephone',
         'date_inscription',
         'id_role'
+    ];
+    protected $hidden = [
+    'mot_de_passe'
     ];
     public function role()
     {

@@ -12,49 +12,58 @@ use App\Http\Controllers\UtilisateurController;
 use App\Http\Controllers\ImageImmobilierController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\AuthController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+Route::post('/login',    [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
 
-// User (Laravel default)
-Route::apiResource('users', UserController::class);
+// ─── Routes PUBLIQUES (visiteurs non connectés) ───────────────────────────────
+Route::get('/biens',      [BienImmobilierController::class, 'index']);
+Route::get('/biens/{id}', [BienImmobilierController::class, 'show']);
 
-// Role
-Route::apiResource('roles', RoleController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-// Utilisateur
-Route::apiResource('utilisateurs', UtilisateurController::class);
+    // ─── Users ───────────────────────────────────────────────────────────
+    Route::apiResource('users', UserController::class);
 
-// Bien Immobilier
-Route::apiResource('biens', BienImmobilierController::class);
+    // ─── Roles ───────────────────────────────────────────────────────────
+    Route::apiResource('roles', RoleController::class);
 
-// Image Immobilier
-Route::apiResource('images', ImageImmobilierController::class);
+    // ─── Utilisateurs ────────────────────────────────────────────────────
+    Route::apiResource('utilisateurs', UtilisateurController::class);
 
-// Contrat
-Route::apiResource('contrats', ContratController::class);
+    // ─── Biens (create, update, delete nécessitent auth) ─────────────────
+    Route::post('/biens',        [BienImmobilierController::class, 'store']);
+    Route::put('/biens/{id}',    [BienImmobilierController::class, 'update']);
+    Route::delete('/biens/{id}', [BienImmobilierController::class, 'destroy']);
 
-// Paiement
-Route::apiResource('paiements', PaiementController::class);
+    // ─── Images Immobilier ───────────────────────────────────────────────
+    Route::apiResource('images', ImageImmobilierController::class);
 
-// Transaction
-Route::apiResource('transactions', TransactionController::class);
+    // ─── Contrats ────────────────────────────────────────────────────────
+    Route::get('contrats/form-data',              [ContratController::class, 'formData']);
+    Route::get('contrats/vendeur/{id_vendeur}',   [ContratController::class, 'byVendeur']);
+    Route::get('contrats/acheteur/{id_acheteur}', [ContratController::class, 'byAcheteur']);
+    Route::put('contrats/{id}/signer',            [ContratController::class, 'signer']);
+    Route::apiResource('contrats', ContratController::class);
 
-// Favori
-Route::apiResource('favoris', FavoriController::class);
+    // ─── Paiements ───────────────────────────────────────────────────────
+    Route::apiResource('paiements', PaiementController::class);
 
-// Contact
-Route::apiResource('contacts', ContactController::class);
+    // ─── Transactions ────────────────────────────────────────────────────
+    Route::apiResource('transactions', TransactionController::class);
 
-// Exemple de route simple pour tester l'API
-Route::get('/hello', function() {
+    // ─── Favoris ─────────────────────────────────────────────────────────
+    Route::apiResource('favoris', FavoriController::class);
+
+    // ─── Contacts ────────────────────────────────────────────────────────
+    Route::get('contacts/vendeur/{id_vendeur}', [ContactController::class, 'byVendeur']);
+    Route::apiResource('contacts', ContactController::class);
+});
+
+// ─── Test ─────────────────────────────────────────────────────────────────────
+Route::get('/hello', function () {
     return response()->json(['message' => 'API Laravel fonctionne !']);
 });

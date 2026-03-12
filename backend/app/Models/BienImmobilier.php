@@ -18,18 +18,19 @@ class BienImmobilier extends Model
         'type_bien',
         'nb_pieces',
         'statut',
-        'id_vendeur'
+        'adresse',     // ✅ ajouté
+        'id_vendeur',
     ];
 
     public function vendeur() {
-        return $this->belongsTo(Utilisateur::class, 'id_vendeur');
+        return $this->belongsTo(Utilisateur::class, 'id_vendeur', 'id_user');
     }
 
     public function images() {
-        return $this->hasMany(ImageImmobilier::class, 'id_bien');
+        return $this->hasMany(ImageImmobilier::class, 'id_bien', 'id_bien');
     }
 
     public function contrats() {
-        return $this->hasMany(Contrat::class, 'id_bien');
+        return $this->hasMany(Contrat::class, 'id_bien', 'id_bien');
     }
 }
