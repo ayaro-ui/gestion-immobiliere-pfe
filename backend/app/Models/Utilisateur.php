@@ -28,6 +28,7 @@ class Utilisateur extends Model
     protected $hidden = [
     'mot_de_passe'
     ];
+    
     public function role()
     {
         return $this->belongsTo(Role::class, 'id_role');
