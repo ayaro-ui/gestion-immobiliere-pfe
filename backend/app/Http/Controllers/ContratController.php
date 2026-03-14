@@ -8,6 +8,7 @@ use App\Models\Utilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ContratController extends Controller
 {
@@ -30,14 +31,10 @@ class ContratController extends Controller
             'id_acheteur'  => 'required|exists:utilisateur,id_user|different:id_vendeur',
             'montant'      => 'required|numeric|min:1',
             'date_contrat' => 'required|date',
-            'statut'       => 'in:en_attente,signe_vendeur,signe_complet,annule',
-            'fichier_pdf'  => 'nullable|file|mimes:pdf|max:10240',
+            'statut'       => 'nullable|in:en_attente,signe_vendeur,signe_complet,annule',
         ]);
 
-        if ($request->hasFile('fichier_pdf')) {
-            $validated['fichier_pdf'] = $request->file('fichier_pdf')
-                                                 ->store('contrats', 'public');
-        }
+        $validated['statut'] = $validated['statut'] ?? 'en_attente';
 
         $contrat = Contrat::create($validated);
 
@@ -58,7 +55,7 @@ class ContratController extends Controller
     // ── PUT /api/contrats/{id} ────────────────────────────────────────────────
     public function update(Request $request, $id): JsonResponse
     {
-        $contrat = Contrat::findOrFail($id);
+        $contrat   = Contrat::findOrFail($id);
 
         $validated = $request->validate([
             'statut'       => 'sometimes|in:en_attente,signe_vendeur,signe_complet,annule',
@@ -67,16 +64,7 @@ class ContratController extends Controller
             'id_bien'      => 'sometimes|exists:bien_immobilier,id_bien',
             'id_vendeur'   => 'sometimes|exists:utilisateur,id_user',
             'id_acheteur'  => 'sometimes|exists:utilisateur,id_user',
-            'fichier_pdf'  => 'nullable|file|mimes:pdf|max:10240',
         ]);
-
-        if ($request->hasFile('fichier_pdf')) {
-            if ($contrat->fichier_pdf) {
-                Storage::disk('public')->delete($contrat->fichier_pdf);
-            }
-            $validated['fichier_pdf'] = $request->file('fichier_pdf')
-                                                 ->store('contrats', 'public');
-        }
 
         $contrat->update($validated);
 
@@ -103,11 +91,10 @@ class ContratController extends Controller
     public function formData(): JsonResponse
     {
         return response()->json([
-            // ✅ tous les statuts inclus
             'biens' => BienImmobilier::with(['images', 'vendeur'])
                                      ->whereIn('statut', ['disponible', 'reserve', 'vendu'])
                                      ->get(),
-            'utilisateurs' => Utilisateur::select('id_user', 'nom', 'prenom', 'email', 'telephone')
+            'utilisateurs' => Utilisateur::select('id_user', 'nom', 'prenom', 'email', 'telephone', 'id_role')
                                           ->orderBy('nom')
                                           ->get(),
         ]);
@@ -124,14 +111,46 @@ class ContratController extends Controller
         ]);
 
         if ($request->role === 'vendeur') {
+
+            if (in_array($contrat->statut, ['signe_vendeur', 'signe_complet'])) {
+                return response()->json(['message' => 'Le vendeur a déjà signé ce contrat.'], 422);
+            }
+
             $contrat->signature_vendeur = $request->signature;
             $contrat->statut            = 'signe_vendeur';
+            $contrat->save();
+
         } else {
+
+            if ($contrat->statut !== 'signe_vendeur') {
+                return response()->json(['message' => 'Le vendeur doit signer en premier.'], 422);
+            }
+
             $contrat->signature_acheteur = $request->signature;
             $contrat->statut             = 'signe_complet';
-        }
+            $contrat->save();
 
-        $contrat->save();
+            // ── Mettre à jour le statut du bien ──────────────────────────────
+            $bien = BienImmobilier::find($contrat->id_bien);
+            if ($bien) {
+                $bien->statut = $bien->type_bien === 'location' ? 'loue' : 'vendu';
+                $bien->save();
+            }
+
+            // ── Générer le PDF automatiquement ───────────────────────────────
+            $contrat->load(['bien.images', 'vendeur', 'acheteur']);
+
+            try {
+                $pdf      = Pdf::loadView('contrats.pdf', ['contrat' => $contrat]);
+                $filename = 'contrats/contrat_' . $contrat->id_contrat . '.pdf';
+                Storage::disk('public')->put($filename, $pdf->output());
+                $contrat->fichier_pdf = $filename;
+                $contrat->save();
+            } catch (\Exception $e) {
+                // PDF non bloquant — le contrat est quand même signé
+                \Log::error('PDF generation failed: ' . $e->getMessage());
+            }
+        }
 
         return response()->json(
             $contrat->load(['bien.images', 'vendeur', 'acheteur'])
@@ -141,22 +160,22 @@ class ContratController extends Controller
     // ── GET /api/contrats/vendeur/{id_vendeur} ────────────────────────────────
     public function byVendeur(int $id_vendeur): JsonResponse
     {
-        $contrats = Contrat::with(['bien.images', 'vendeur', 'acheteur'])
-                           ->where('id_vendeur', $id_vendeur)
-                           ->orderByDesc('id_contrat')
-                           ->get();
-
-        return response()->json($contrats);
+        return response()->json(
+            Contrat::with(['bien.images', 'vendeur', 'acheteur'])
+                   ->where('id_vendeur', $id_vendeur)
+                   ->orderByDesc('id_contrat')
+                   ->get()
+        );
     }
 
     // ── GET /api/contrats/acheteur/{id_acheteur} ──────────────────────────────
     public function byAcheteur(int $id_acheteur): JsonResponse
     {
-        $contrats = Contrat::with(['bien.images', 'vendeur', 'acheteur'])
-                           ->where('id_acheteur', $id_acheteur)
-                           ->orderByDesc('id_contrat')
-                           ->get();
-
-        return response()->json($contrats);
+        return response()->json(
+            Contrat::with(['bien.images', 'vendeur', 'acheteur'])
+                   ->where('id_acheteur', $id_acheteur)
+                   ->orderByDesc('id_contrat')
+                   ->get()
+        );
     }
 }

@@ -18,9 +18,9 @@ class ImageImmobilierController extends Controller
     {
         // ✅ validation
         $request->validate([
-            'image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-            'id_bien' => 'required|exists:bien_immobilier,id_bien',
-            'description' => 'nullable|string|max:255'
+            'image'       => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'id_bien'     => 'required|exists:bien_immobilier,id_bien',
+            'description' => 'nullable|string|max:255',
         ]);
 
         // ✅ stockage fichier
@@ -28,10 +28,10 @@ class ImageImmobilierController extends Controller
 
         // ✅ sauvegarde base de données
         $image = ImageImmobilier::create([
-            'id_bien' => $request->id_bien,
-            'url_image' => $path,
+            'id_bien'     => $request->id_bien,
+            'url_image'   => $path,
             'description' => $request->description,
-            'date_ajout' => now()
+            'date_ajout'  => now(),
         ]);
 
         return response()->json($image, 201);
