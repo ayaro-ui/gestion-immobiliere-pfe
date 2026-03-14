@@ -1,10 +1,10 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 
 function Navbar() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
-  const token     = localStorage.getItem('token')
-  const user      = JSON.parse(localStorage.getItem('user') || '{}')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const token    = localStorage.getItem('token')
+  const user     = JSON.parse(localStorage.getItem('user') || '{}')
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -16,7 +16,6 @@ function Navbar() {
   const isAdmin   = token && user?.id_role === 1
   const isClient  = token && user?.id_role === 3
 
-  // Lien actif
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/')
 
   const linkStyle = (path) => ({
@@ -61,8 +60,8 @@ function Navbar() {
         {/* Visiteur non connecté */}
         {!token && (
           <>
-            <Link to="/"          style={linkStyle('/__home__')}>Accueil</Link>
-            <Link to="/biens"     style={linkStyle('/biens')}>Tendances</Link>
+            <Link to="/"           style={linkStyle('/__home__')}>Accueil</Link>
+            <Link to="/biens"      style={linkStyle('/biens')}>Tendances</Link>
             <Link to="/mes-droits" style={linkStyle('/mes-droits')}>Mes droits</Link>
           </>
         )}
@@ -70,39 +69,40 @@ function Navbar() {
         {/* ── Vendeur (id_role: 2) ── */}
         {isVendeur && (
           <>
-            <Link to="/"                      style={linkStyle('/__home__')}>Accueil</Link>
-            <Link to="/vendeur/dashboard"     style={linkStyle('/vendeur/dashboard')}>
-              📊 Dashboard
-            </Link>
-            <Link to="/vendeur/mes-biens"     style={linkStyle('/vendeur/mes-biens')}>Mes Biens</Link>
-            <Link to="/vendeur/mes-demandes"  style={linkStyle('/vendeur/mes-demandes')}>Demandes</Link>
-            <Link to="/vendeur/contrats"      style={linkStyle('/vendeur/contrats')}>Contrats</Link>
-            <Link to="/vendeur/mes-paiements" style={linkStyle('/vendeur/mes-paiements')}>Paiements</Link>
-            <Link to="/vendeur/mes-transactions" style={linkStyle('/vendeur/mes-transactions')}>Transactions</Link>
-            <Link to="/mes-droits"            style={linkStyle('/mes-droits')}>Mes droits</Link>
+            <Link to="/"                          style={linkStyle('/__home__')}>Accueil</Link>
+            <Link to="/vendeur/dashboard"         style={linkStyle('/vendeur/dashboard')}>📊 Dashboard</Link>
+            <Link to="/vendeur/mes-biens"         style={linkStyle('/vendeur/mes-biens')}>Mes Biens</Link>
+            <Link to="/vendeur/mes-demandes"      style={linkStyle('/vendeur/mes-demandes')}>Demandes</Link>
+            <Link to="/vendeur/contrats"          style={linkStyle('/vendeur/contrats')}>Contrats</Link>
+            <Link to="/vendeur/mes-paiements"     style={linkStyle('/vendeur/mes-paiements')}>Paiements</Link>
+            <Link to="/vendeur/mes-transactions"  style={linkStyle('/vendeur/mes-transactions')}>Transactions</Link>
+            <Link to="/vendeur/prediction-prix"   style={linkStyle('/vendeur/prediction-prix')}>🤖 Prédiction</Link>
+            <Link to="/mes-droits"                style={linkStyle('/mes-droits')}>Mes droits</Link>
           </>
         )}
 
         {/* ── Admin (id_role: 1) ── */}
         {isAdmin && (
           <>
-            <Link to="/admin/dashboard"    style={linkStyle('/admin/dashboard')}>Dashboard</Link>
-            <Link to="/admin/contrats"     style={linkStyle('/admin/contrats')}>Contrats</Link>
-            <Link to="/admin/utilisateurs" style={linkStyle('/admin/utilisateurs')}>Utilisateurs</Link>
-            <Link to="/admin/biens"        style={linkStyle('/admin/biens')}>Biens</Link>
-            <Link to="/mes-droits"         style={linkStyle('/mes-droits')}>Mes droits</Link>
+            <Link to="/admin/dashboard"              style={linkStyle('/admin/dashboard')}>📊 Dashboard</Link>
+            <Link to="/admin/utilisateurs"           style={linkStyle('/admin/utilisateurs')}>👥 Utilisateurs</Link>
+            <Link to="/admin/biens"                  style={linkStyle('/admin/biens')}>🏠 Biens</Link>
+            <Link to="/admin/contrats"               style={linkStyle('/admin/contrats')}>📋 Contrats</Link>
+            <Link to="/admin/transactions" style={linkStyle('/admin/transactions')}>💳 Paiements & Transactions</Link>
+            <Link to="/admin/contacts"               style={linkStyle('/admin/contacts')}>✉️ Contacts</Link>
+            <Link to="/mes-droits"                   style={linkStyle('/mes-droits')}>Mes droits</Link>
           </>
         )}
 
         {/* ── Client (id_role: 3) ── */}
         {isClient && (
           <>
-            <Link to="/"                   style={linkStyle('/__home__')}>Accueil</Link>
-            <Link to="/biens"              style={linkStyle('/biens')}>Tendances</Link>
-            <Link to="/client/favoris"     style={linkStyle('/client/favoris')}>❤️ Favoris</Link>
+            <Link to="/"                     style={linkStyle('/__home__')}>Accueil</Link>
+            <Link to="/biens"                style={linkStyle('/biens')}>Tendances</Link>
+            <Link to="/client/favoris"       style={linkStyle('/client/favoris')}>❤️ Favoris</Link>
             <Link to="/client/mes-contrats"  style={linkStyle('/client/mes-contrats')}>Contrats</Link>
             <Link to="/client/mes-paiements" style={linkStyle('/client/mes-paiements')}>Paiements</Link>
-            <Link to="/mes-droits"         style={linkStyle('/mes-droits')}>Mes droits</Link>
+            <Link to="/mes-droits"           style={linkStyle('/mes-droits')}>Mes droits</Link>
           </>
         )}
 
@@ -112,16 +112,11 @@ function Navbar() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
         {!token ? (
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => navigate('/login')} style={btnPrimaryStyle}>
-              Connexion
-            </button>
-            <button onClick={() => navigate('/register')} style={btnSecondaryStyle}>
-              S'inscrire
-            </button>
+            <button onClick={() => navigate('/login')} style={btnPrimaryStyle}>Connexion</button>
+            <button onClick={() => navigate('/register')} style={btnSecondaryStyle}>S'inscrire</button>
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* Badge rôle */}
             <span style={{
               fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: 99,
               background: isAdmin ? '#FEF3C7' : isVendeur ? '#EEF2FF' : '#ECFDF5',
@@ -130,15 +125,10 @@ function Navbar() {
             }}>
               {isAdmin ? '👑 Admin' : isVendeur ? '🏠 Vendeur' : '🤝 Client'}
             </span>
-
-            {/* Nom utilisateur */}
             <span style={{ color: '#374151', fontWeight: 600, fontSize: '14px' }}>
               👤 {user?.prenom || user?.nom || 'Profil'}
             </span>
-
-            <button onClick={handleLogout} style={btnLogoutStyle}>
-              Déconnexion
-            </button>
+            <button onClick={handleLogout} style={btnLogoutStyle}>Déconnexion</button>
           </div>
         )}
       </div>
@@ -146,37 +136,8 @@ function Navbar() {
   )
 }
 
-const btnPrimaryStyle = {
-  background: '#2563eb',
-  color: 'white',
-  border: 'none',
-  padding: '8px 20px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontWeight: '600',
-  fontSize: '14px',
-}
-
-const btnSecondaryStyle = {
-  background: 'white',
-  color: '#2563eb',
-  border: '1px solid #2563eb',
-  padding: '8px 16px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontWeight: '600',
-  fontSize: '14px',
-}
-
-const btnLogoutStyle = {
-  background: 'white',
-  color: '#ef4444',
-  border: '1px solid #ef4444',
-  padding: '8px 16px',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontWeight: '500',
-  fontSize: '14px',
-}
+const btnPrimaryStyle   = { background: '#2563eb', color: 'white', border: 'none', padding: '8px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }
+const btnSecondaryStyle = { background: 'white', color: '#2563eb', border: '1px solid #2563eb', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }
+const btnLogoutStyle    = { background: 'white', color: '#ef4444', border: '1px solid #ef4444', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '14px' }
 
 export default Navbar
