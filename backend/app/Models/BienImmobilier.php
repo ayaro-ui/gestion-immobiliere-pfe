@@ -20,6 +20,8 @@ class BienImmobilier extends Model
         'statut',
         'adresse',     // ✅ ajouté
         'id_vendeur',
+        'latitude',
+        'longitude',
     ];
 
     public function vendeur() {
