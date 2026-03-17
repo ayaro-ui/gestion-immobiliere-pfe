@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Contrat;
 use App\Models\BienImmobilier;
 use App\Models\Utilisateur;
+use App\Mail\ContratPretASigner;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -55,7 +57,7 @@ class ContratController extends Controller
     // ── PUT /api/contrats/{id} ────────────────────────────────────────────────
     public function update(Request $request, $id): JsonResponse
     {
-        $contrat   = Contrat::findOrFail($id);
+        $contrat = Contrat::findOrFail($id);
 
         $validated = $request->validate([
             'statut'       => 'sometimes|in:en_attente,signe_vendeur,signe_complet,annule',
@@ -91,19 +93,19 @@ class ContratController extends Controller
     public function formData(): JsonResponse
     {
         return response()->json([
-            'biens' => BienImmobilier::with(['images', 'vendeur'])
-                                     ->whereIn('statut', ['disponible', 'reserve', 'vendu'])
-                                     ->get(),
+            'biens'        => BienImmobilier::with(['images', 'vendeur'])
+                                            ->whereIn('statut', ['disponible', 'reserve', 'vendu'])
+                                            ->get(),
             'utilisateurs' => Utilisateur::select('id_user', 'nom', 'prenom', 'email', 'telephone', 'id_role')
-                                          ->orderBy('nom')
-                                          ->get(),
+                                         ->orderBy('nom')
+                                         ->get(),
         ]);
     }
 
     // ── PUT /api/contrats/{id}/signer ─────────────────────────────────────────
     public function signer(Request $request, int $id): JsonResponse
     {
-        $contrat = Contrat::findOrFail($id);
+        $contrat = Contrat::with(['bien.images', 'vendeur', 'acheteur'])->findOrFail($id);
 
         $request->validate([
             'role'      => 'required|in:vendeur,acheteur',
@@ -119,6 +121,20 @@ class ContratController extends Controller
             $contrat->signature_vendeur = $request->signature;
             $contrat->statut            = 'signe_vendeur';
             $contrat->save();
+
+            // ── Notifier l'acheteur par email ─────────────────────────────────
+            $acheteur = $contrat->acheteur;
+            $vendeur  = $contrat->vendeur;
+
+            if ($acheteur && $acheteur->email) {
+                try {
+                    Mail::to($acheteur->email)
+                        ->send(new ContratPretASigner($contrat, $acheteur, $vendeur));
+                } catch (\Exception $e) {
+                    \Log::error('Email notification failed: ' . $e->getMessage());
+                }
+            }
+            // ─────────────────────────────────────────────────────────────────
 
         } else {
 
@@ -147,7 +163,6 @@ class ContratController extends Controller
                 $contrat->fichier_pdf = $filename;
                 $contrat->save();
             } catch (\Exception $e) {
-                // PDF non bloquant — le contrat est quand même signé
                 \Log::error('PDF generation failed: ' . $e->getMessage());
             }
         }
