@@ -14,18 +14,9 @@ export default function AjouterBien() {
   const [apiError, setApiError] = useState("");
 
   const [form, setForm] = useState({
-    titre: "",
-    description: "",
-    surface: "",
-    prix: "",
-    type_bien: "vente",
-    nb_pieces: "",
-    adresse: "",
-    statut: "disponible",
-    garage: false,
-    piscine: false,
-    jardin: false,
-    meuble: false,
+    titre: "", description: "", surface: "", prix: "",
+    type_bien: "vente", nb_pieces: "", adresse: "",
+    statut: "disponible", garage: false, piscine: false, jardin: false, meuble: false,
   });
 
   const handleChange = (e) => {
@@ -38,8 +29,7 @@ export default function AjouterBien() {
     const newImgs = Array.from(files).map((f) => ({
       id: Math.random().toString(36).slice(2),
       url: URL.createObjectURL(f),
-      file: f,
-      name: f.name,
+      file: f, name: f.name,
       size: (f.size / 1024).toFixed(1),
     }));
     setImages((p) => [...p, ...newImgs]);
@@ -61,350 +51,405 @@ export default function AjouterBien() {
   };
 
   const goNext = () => {
-    if (step === 1) {
-      const e = validateStep1();
-      if (Object.keys(e).length) { setErrors(e); return; }
-    }
-    if (step === 2) {
-      const e = validateStep2();
-      if (Object.keys(e).length) { setErrors(e); return; }
-    }
+    if (step === 1) { const e = validateStep1(); if (Object.keys(e).length) { setErrors(e); return; } }
+    if (step === 2) { const e = validateStep2(); if (Object.keys(e).length) { setErrors(e); return; } }
     setStep((s) => s + 1);
   };
 
   const handleSubmit = async () => {
-    setSubmitting(true);
-    setApiError("");
-
+    setSubmitting(true); setApiError("");
     try {
       const user  = JSON.parse(localStorage.getItem("user"));
       const token = localStorage.getItem("token");
-
-      // ── 1️⃣ Envoyer le bien ──────────────────────────────────
       const response = await fetch("http://127.0.0.1:8000/api/biens", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", "Accept": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
-          titre:       form.titre,
-          description: form.description,
-          surface:     parseFloat(form.surface),
-          prix:        parseFloat(form.prix),
-          type_bien:   form.type_bien,
-          nb_pieces:   parseInt(form.nb_pieces),
-          statut:      form.statut,
-          adresse:     form.adresse,
-          id_vendeur:  user?.id_user,
+          titre: form.titre, description: form.description,
+          surface: parseFloat(form.surface), prix: parseFloat(form.prix),
+          type_bien: form.type_bien, nb_pieces: parseInt(form.nb_pieces),
+          statut: form.statut, adresse: form.adresse, id_vendeur: user?.id_user,
         }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
-        if (data.errors) {
-          const laravelErrors = {};
-          Object.keys(data.errors).forEach((key) => {
-            laravelErrors[key] = data.errors[key][0];
-          });
-          setErrors(laravelErrors);
-          setStep(1);
-        } else {
-          setApiError(data.message || "Une erreur est survenue");
-        }
-        setSubmitting(false);
-        return;
+        if (data.errors) { const le = {}; Object.keys(data.errors).forEach((k) => { le[k] = data.errors[k][0]; }); setErrors(le); setStep(1); }
+        else { setApiError(data.message || "Une erreur est survenue"); }
+        setSubmitting(false); return;
       }
-
       const bienId = data.id_bien;
-      console.log("✅ Bien créé avec id:", bienId);
-
-      // ── 2️⃣ Envoyer les images ────────────────────────────────
       if (images.length > 0) {
         for (const img of images) {
-          const formData = new FormData();
-          formData.append("image", img.file);   // ✅ "image" = nom attendu par Laravel
-          formData.append("id_bien", bienId);
-          formData.append("description", img.name);
-
-          const imgResponse = await fetch("http://127.0.0.1:8000/api/images", {
+          const fd = new FormData();
+          fd.append("image", img.file); fd.append("id_bien", bienId); fd.append("description", img.name);
+          await fetch("http://127.0.0.1:8000/api/images", {
             method: "POST",
-            headers: {
-              "Authorization": `Bearer ${token}`,
-              "Accept": "application/json",
-              // ⚠️ PAS de Content-Type ici — le browser le met automatiquement avec boundary
-            },
-            body: formData,
+            headers: { "Authorization": `Bearer ${token}`, "Accept": "application/json" },
+            body: fd,
           });
-
-          const imgData = await imgResponse.json();
-          console.log("🖼️ Image response:", imgData);
-
-          if (!imgResponse.ok) {
-            console.error("❌ Erreur image:", imgData);
-          }
         }
       }
-
       setSuccess(true);
-      setTimeout(() => navigate("/vendeur/mes-biens"), 2000);
-
-    } catch (err) {
-      console.error("Erreur:", err);
-      setApiError("Impossible de contacter le serveur. Vérifiez que Laravel tourne.");
-    }
-
+      setTimeout(() => navigate("/vendeur/mes-biens"), 2500);
+    } catch { setApiError("Impossible de contacter le serveur."); }
     setSubmitting(false);
   };
 
-  const inp = (name) => ({
-    name,
-    value: form[name],
-    onChange: handleChange,
-    onFocus: (e) => (e.target.style.borderColor = "#f59e0b"),
-    onBlur:  (e) => (e.target.style.borderColor = errors[name] ? "#ef4444" : "#e2e8f0"),
-    style: {
-      width: "100%", padding: "12px 16px", borderRadius: 12,
-      border: `1.5px solid ${errors[name] ? "#ef4444" : "#e2e8f0"}`,
-      fontSize: 14, color: "#0f172a", outline: "none",
-      fontFamily: "'DM Sans', sans-serif", background: "#fafafa",
-      boxSizing: "border-box", transition: "border-color 0.2s",
-    },
-  });
+  const STEPS = [
+    { num: 1, label: "Informations" },
+    { num: 2, label: "Détails" },
+    { num: 3, label: "Photos" },
+  ];
 
-  const Label = ({ children }) => (
-    <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6, fontFamily: "'DM Sans', sans-serif" }}>
+  const LabelField = ({ children }) => (
+    <label style={{ display: "block", fontFamily: "'DM Sans',sans-serif", fontSize: "10px", fontWeight: "700", color: "#9ca3af", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "8px" }}>
       {children}
     </label>
   );
 
-  const Err = ({ name }) => errors[name]
-    ? <span style={{ color: "#ef4444", fontSize: 12, marginTop: 4, display: "block" }}>⚠ {errors[name]}</span>
+  const ErrMsg = ({ name }) => errors[name]
+    ? <span style={{ fontFamily: "'DM Sans',sans-serif", color: "#dc2626", fontSize: "11px", marginTop: "5px", display: "block" }}>{errors[name]}</span>
     : null;
 
   if (success) return (
-    <div style={{ minHeight: "100vh", background: "#f1f5f9", paddingLeft: 260, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-      <div style={{ background: "#fff", borderRadius: 24, padding: "60px 80px", textAlign: "center", boxShadow: "0 8px 32px rgba(0,0,0,0.1)" }}>
-        <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 24px" }}>✅</div>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, color: "#0f172a", margin: "0 0 10px" }}>Bien publié avec succès !</h2>
-        <p style={{ color: "#64748b", fontSize: 15 }}>Redirection vers vos biens...</p>
+    <div style={{ minHeight: "100vh", background: "#f8f7f4", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond',serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ position: "relative", width: "100px", height: "100px", margin: "0 auto 32px" }}>
+          <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1px solid rgba(200,169,110,0.3)" }} />
+          <div style={{ position: "absolute", inset: "8px", borderRadius: "50%", background: "#0f1e35", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c8a96e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+        <div style={{ width: "32px", height: "1px", background: "#c8a96e", margin: "0 auto 16px" }} />
+        <h2 style={{ fontSize: "32px", fontWeight: "700", color: "#0f1e35", margin: "0 0 10px" }}>Bien publié avec succès</h2>
+        <p style={{ fontFamily: "'DM Sans',sans-serif", color: "#9ca3af", fontSize: "14px", margin: 0 }}>Redirection vers vos biens...</p>
       </div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f1f5f9", fontFamily: "'DM Sans', sans-serif", paddingLeft: 260 }}>
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <div style={{ minHeight: "100vh", background: "#f8f7f4", fontFamily: "'Cormorant Garamond',serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; }
 
-      <main style={{ padding: "36px 40px", maxWidth: 860 }}>
+        .aj-input {
+          width: 100%; padding: 13px 16px;
+          border: 1px solid rgba(200,169,110,0.25);
+          border-radius: 2px; font-family: 'DM Sans', sans-serif;
+          font-size: 14px; color: #0f1e35; background: #fdfcfa;
+          outline: none; transition: all 0.2s;
+        }
+        .aj-input:focus { border-color: #c8a96e; background: white; }
+        .aj-input::placeholder { color: #c4bfb8; }
+        .aj-input.err { border-color: rgba(220,38,38,0.4); background: #fff8f8; }
 
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
+        .btn-gold {
+          padding: 15px 40px; background: #c8a96e; color: white; border: none;
+          border-radius: 2px; font-family: 'DM Sans', sans-serif;
+          font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
+          text-transform: uppercase; cursor: pointer;
+          transition: background 0.2s, transform 0.15s;
+        }
+        .btn-gold:hover:not(:disabled) { background: #b8955a; transform: translateY(-2px); }
+        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-ghost {
+          padding: 15px 32px; background: transparent; color: #6b7280;
+          border: 1px solid rgba(200,169,110,0.25); border-radius: 2px;
+          font-family: 'DM Sans', sans-serif; font-size: 10px;
+          font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+          cursor: pointer; transition: all 0.2s;
+        }
+        .btn-ghost:hover { border-color: #c8a96e; color: #0f1e35; }
+
+        .equip-tag {
+          display: flex; align-items: center; gap: 10px; cursor: pointer;
+          padding: 12px 20px; font-size: 13px;
+          font-family: 'DM Sans', sans-serif; font-weight: 500;
+          transition: all 0.2s; border-radius: 2px;
+          border: 1px solid rgba(200,169,110,0.2);
+        }
+        .equip-tag.on  { background: #0f1e35; color: white; border-color: #0f1e35; }
+        .equip-tag.off { background: #fdfcfa; color: #6b7280; }
+        .equip-tag.off:hover { border-color: #c8a96e; color: #0f1e35; background: white; }
+
+        .drop-zone {
+          border: 1px dashed rgba(200,169,110,0.4);
+          border-radius: 2px; padding: 52px 24px; text-align: center;
+          cursor: pointer; transition: all 0.2s; background: #fdfcfa;
+        }
+        .drop-zone:hover, .drop-zone.over { border-color: #c8a96e; background: white; }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        .fade-up { animation: fadeUp 0.4s ease forwards; }
+      `}</style>
+
+      {/* ── HERO ── */}
+      <div style={{ position: "relative", height: "240px", overflow: "hidden" }}>
+        <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1600&q=90" alt=""
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(105deg, rgba(8,16,34,0.95) 0%, rgba(8,16,34,0.6) 55%, rgba(8,16,34,0.15) 100%)" }} />
+        <div style={{ position: "absolute", left: "72px", top: "15%", bottom: "15%", width: "1px", background: "linear-gradient(to bottom, transparent, #c8a96e, transparent)" }} />
+        <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 110px" }}>
           <button onClick={() => navigate("/vendeur/mes-biens")}
-            style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 18, color: "#475569" }}>
-            ←
+            style={{ background: "none", border: "none", color: "rgba(200,169,110,0.7)", cursor: "pointer", fontFamily: "'DM Sans',sans-serif", fontSize: "10px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", padding: 0, marginBottom: "18px", display: "flex", alignItems: "center", gap: "8px", width: "fit-content" }}>
+            ← Retour
           </button>
-          <div>
-            <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700, color: "#0f172a", margin: 0 }}>Ajouter un bien</h1>
-            <p style={{ color: "#64748b", fontSize: 14, margin: "4px 0 0" }}>Remplissez les informations de votre bien immobilier</p>
-          </div>
+          <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "10px", fontWeight: "700", letterSpacing: "4px", color: "#c8a96e", textTransform: "uppercase", marginBottom: "10px", display: "block" }}>
+            Espace vendeur
+          </span>
+          <h1 style={{ color: "white", fontSize: "40px", fontWeight: "700", lineHeight: 1.1, margin: 0 }}>
+            Ajouter un bien
+          </h1>
         </div>
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "70px", background: "linear-gradient(to top, #f8f7f4, transparent)" }} />
+      </div>
 
-        {/* Erreur API */}
+      {/* ── CONTENU CENTRÉ ── */}
+      <main style={{ maxWidth: "780px", margin: "0 auto", padding: "40px 24px 100px" }}>
+
         {apiError && (
-          <div style={{ background: "#fee2e2", border: "1px solid #fecaca", borderRadius: 12, padding: "14px 20px", marginBottom: 24, color: "#dc2626", fontSize: 14, fontWeight: 500 }}>
-            ❌ {apiError}
+          <div style={{ background: "#fef2f2", border: "1px solid rgba(220,38,38,0.2)", padding: "14px 20px", marginBottom: "32px", color: "#991b1b", fontFamily: "'DM Sans',sans-serif", fontSize: "13px" }}>
+            {apiError}
           </div>
         )}
 
-        {/* Steps */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 36, maxWidth: 500 }}>
-          {[{ num: 1, label: "Informations" }, { num: 2, label: "Détails" }, { num: 3, label: "Images" }].map((s, i) => (
-            <div key={s.num} style={{ display: "flex", alignItems: "center", flex: 1 }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}
-                onClick={() => step > s.num && setStep(s.num)}>
+        {/* ── Stepper ── */}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: "40px" }}>
+          {STEPS.map((s, i) => (
+            <div key={s.num} style={{ display: "flex", alignItems: "center", flex: i < 2 ? 1 : "none" }}>
+              <div onClick={() => step > s.num && setStep(s.num)}
+                style={{ display: "flex", alignItems: "center", gap: "10px", cursor: step > s.num ? "pointer" : "default" }}>
                 <div style={{
                   width: 38, height: 38, borderRadius: "50%",
-                  background: step === s.num ? "linear-gradient(135deg, #f59e0b, #ef4444)" : step > s.num ? "#16a34a" : "#e2e8f0",
-                  color: step >= s.num ? "#fff" : "#94a3b8",
+                  background: step > s.num ? "#c8a96e" : step === s.num ? "#0f1e35" : "white",
+                  border: step >= s.num ? "none" : "1px solid rgba(200,169,110,0.25)",
+                  color: step >= s.num ? "white" : "#9ca3af",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 14, fontWeight: 700, transition: "all 0.3s",
+                  fontFamily: "'DM Sans',sans-serif", fontSize: "13px", fontWeight: "700",
+                  transition: "all 0.3s", flexShrink: 0,
                 }}>
-                  {step > s.num ? "✓" : s.num}
+                  {step > s.num
+                    ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    : s.num}
                 </div>
-                <span style={{ fontSize: 11, marginTop: 6, color: step === s.num ? "#f59e0b" : "#94a3b8", fontWeight: step === s.num ? 600 : 400 }}>
-                  {s.label}
-                </span>
+                <div>
+                  <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "9px", fontWeight: "700", letterSpacing: "1.5px", textTransform: "uppercase", color: step === s.num ? "#c8a96e" : step > s.num ? "#6b7280" : "#c4bfb8" }}>
+                    Étape {s.num}
+                  </div>
+                  <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "15px", fontWeight: "700", color: step === s.num ? "#0f1e35" : step > s.num ? "#6b7280" : "#c4bfb8" }}>
+                    {s.label}
+                  </div>
+                </div>
               </div>
-              {i < 2 && <div style={{ height: 2, flex: 1, background: step > s.num ? "#16a34a" : "#e2e8f0", margin: "0 8px 22px", transition: "background 0.3s" }} />}
+              {i < 2 && (
+                <div style={{ flex: 1, height: "1px", background: step > s.num ? "#c8a96e" : "rgba(200,169,110,0.15)", margin: "0 16px", transition: "background 0.4s" }} />
+              )}
             </div>
           ))}
         </div>
 
-        {/* Card */}
-        <div style={{ background: "#fff", borderRadius: 20, padding: "36px 40px", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+        {/* ── Card formulaire ── */}
+        <div className="fade-up" style={{ background: "white", border: "1px solid rgba(200,169,110,0.12)", boxShadow: "0 4px 32px rgba(10,20,40,0.06)" }}>
 
-          {/* STEP 1 */}
-          {step === 1 && (
-            <div>
-              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#0f172a", margin: "0 0 28px" }}>Informations générales</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <Label>Titre de l'annonce *</Label>
-                  <input {...inp("titre")} placeholder="Ex: Villa moderne avec piscine" />
-                  <Err name="titre" />
-                </div>
+          {/* En-tête */}
+          <div style={{ padding: "28px 36px 24px", borderBottom: "1px solid rgba(200,169,110,0.1)" }}>
+            <div style={{ width: "28px", height: "2px", background: "#c8a96e", marginBottom: "10px" }} />
+            <h2 style={{ fontSize: "24px", fontWeight: "700", color: "#0f1e35", margin: "0 0 4px" }}>
+              {step === 1 ? "Informations générales" : step === 2 ? "Détails du bien" : "Photos du bien"}
+            </h2>
+            <p style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "13px", color: "#9ca3af", margin: 0 }}>
+              {step === 1 ? "Titre, description et localisation" : step === 2 ? "Surface, prix et équipements" : "Valorisez votre annonce avec des photos"}
+            </p>
+          </div>
+
+          {/* Corps */}
+          <div style={{ padding: "32px 36px" }}>
+
+            {/* STEP 1 */}
+            {step === 1 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 <div>
-                  <Label>Type de transaction *</Label>
-                  <select {...inp("type_bien")} style={{ ...inp("type_bien").style, cursor: "pointer" }}>
-                    <option value="vente">Vente</option>
-                    <option value="location">Location</option>
-                  </select>
+                  <LabelField>Titre de l'annonce *</LabelField>
+                  <input className={`aj-input${errors.titre ? " err" : ""}`} name="titre" value={form.titre} onChange={handleChange} placeholder="Ex : Villa moderne avec piscine à Marrakech" />
+                  <ErrMsg name="titre" />
                 </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div>
+                    <LabelField>Type de transaction</LabelField>
+                    <select className="aj-input" name="type_bien" value={form.type_bien} onChange={handleChange} style={{ cursor: "pointer" }}>
+                      <option value="vente">Vente</option>
+                      <option value="location">Location</option>
+                    </select>
+                  </div>
+                  <div>
+                    <LabelField>Statut</LabelField>
+                    <select className="aj-input" name="statut" value={form.statut} onChange={handleChange} style={{ cursor: "pointer" }}>
+                      <option value="disponible">Disponible</option>
+                      <option value="vendu">Vendu</option>
+                      <option value="loue">Loué</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
-                  <Label>Statut *</Label>
-                  <select {...inp("statut")} style={{ ...inp("statut").style, cursor: "pointer" }}>
-                    <option value="disponible">Disponible</option>
-                    <option value="vendu">Vendu</option>
-                    <option value="loue">Loué</option>
-                  </select>
+                  <LabelField>Adresse</LabelField>
+                  <input className="aj-input" name="adresse" value={form.adresse} onChange={handleChange} placeholder="Ex : 12 Rue Hassan II, Casablanca" />
                 </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <Label>Adresse</Label>
-                  <input {...inp("adresse")} placeholder="Ex: 12 Rue Hassan II, Casablanca" />
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <Label>Description *</Label>
-                  <textarea {...inp("description")} placeholder="Décrivez votre bien..." rows={4}
-                    style={{ ...inp("description").style, resize: "vertical", lineHeight: 1.6 }} />
-                  <Err name="description" />
+
+                <div>
+                  <LabelField>Description *</LabelField>
+                  <textarea className={`aj-input${errors.description ? " err" : ""}`} name="description" value={form.description} onChange={handleChange}
+                    placeholder="Décrivez votre bien en détail : emplacement, état, atouts..." rows={5}
+                    style={{ resize: "vertical", lineHeight: "1.65" }} />
+                  <ErrMsg name="description" />
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* STEP 2 */}
-          {step === 2 && (
-            <div>
-              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#0f172a", margin: "0 0 28px" }}>Détails du bien</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            {/* STEP 2 */}
+            {step === 2 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div>
+                    <LabelField>Surface (m²) *</LabelField>
+                    <input className={`aj-input${errors.surface ? " err" : ""}`} name="surface" value={form.surface} onChange={handleChange} type="number" placeholder="Ex : 150" />
+                    <ErrMsg name="surface" />
+                  </div>
+                  <div>
+                    <LabelField>Nombre de pièces *</LabelField>
+                    <input className={`aj-input${errors.nb_pieces ? " err" : ""}`} name="nb_pieces" value={form.nb_pieces} onChange={handleChange} type="number" placeholder="Ex : 4" />
+                    <ErrMsg name="nb_pieces" />
+                  </div>
+                </div>
+
                 <div>
-                  <Label>Surface (m²) *</Label>
-                  <input {...inp("surface")} type="number" placeholder="Ex: 150" />
-                  <Err name="surface" />
+                  <LabelField>Prix {form.type_bien === "location" ? "(MAD / mois)" : "(MAD)"} *</LabelField>
+                  <input className={`aj-input${errors.prix ? " err" : ""}`} name="prix" value={form.prix} onChange={handleChange} type="number" placeholder="Ex : 850 000" />
+                  <ErrMsg name="prix" />
                 </div>
+
                 <div>
-                  <Label>Nombre de pièces *</Label>
-                  <input {...inp("nb_pieces")} type="number" placeholder="Ex: 4" />
-                  <Err name="nb_pieces" />
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <Label>Prix {form.type_bien === "location" ? "(MAD/mois)" : "(MAD)"} *</Label>
-                  <input {...inp("prix")} type="number" placeholder="Ex: 850000" />
-                  <Err name="prix" />
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <Label>Équipements</Label>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 4 }}>
+                  <LabelField>Équipements</LabelField>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     {[
-                      { name: "garage",  label: "🚗 Garage"  },
-                      { name: "piscine", label: "🏊 Piscine" },
-                      { name: "jardin",  label: "🌿 Jardin"  },
-                      { name: "meuble",  label: "🛋️ Meublé"  },
+                      { name: "garage",  label: "Garage"  },
+                      { name: "piscine", label: "Piscine" },
+                      { name: "jardin",  label: "Jardin"  },
+                      { name: "meuble",  label: "Meublé"  },
                     ].map((eq) => (
-                      <label key={eq.name} style={{
-                        display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
-                        background: form[eq.name] ? "#fef3c7" : "#f8fafc",
-                        border: `1.5px solid ${form[eq.name] ? "#f59e0b" : "#e2e8f0"}`,
-                        borderRadius: 10, padding: "10px 16px", fontSize: 14, fontWeight: 500,
-                        transition: "all 0.2s",
-                      }}>
+                      <label key={eq.name} className={`equip-tag ${form[eq.name] ? "on" : "off"}`}>
                         <input type="checkbox" name={eq.name} checked={form[eq.name]} onChange={handleChange} style={{ display: "none" }} />
+                        {form[eq.name] && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                         {eq.label}
-                        {form[eq.name] && <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>✓</span>}
                       </label>
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* STEP 3 */}
-          {step === 3 && (
-            <div>
-              <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: "#0f172a", margin: "0 0 28px" }}>Photos du bien</h2>
-              <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(false); addImages(e.dataTransfer.files); }}
-                onClick={() => fileRef.current.click()}
-                style={{
-                  border: `2px dashed ${dragOver ? "#f59e0b" : "#cbd5e1"}`,
-                  borderRadius: 16, padding: "48px 24px", textAlign: "center",
-                  background: dragOver ? "#fef3c7" : "#fafafa",
-                  cursor: "pointer", transition: "all 0.2s", marginBottom: 24,
-                }}
-              >
-                <input ref={fileRef} type="file" multiple accept="image/*" style={{ display: "none" }}
-                  onChange={(e) => addImages(e.target.files)} />
-                <div style={{ fontSize: 48, marginBottom: 12 }}>🖼️</div>
-                <p style={{ color: "#475569", fontWeight: 600, margin: "0 0 6px", fontSize: 15 }}>Glissez vos photos ici</p>
-                <p style={{ color: "#94a3b8", fontSize: 13, margin: 0 }}>
-                  ou <span style={{ color: "#f59e0b", fontWeight: 600 }}>cliquez pour sélectionner</span> — JPG, PNG
-                </p>
-              </div>
-              {images.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 14 }}>
-                  {images.map((img) => (
-                    <div key={img.id} style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "1", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-                      <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      <button onClick={(e) => { e.stopPropagation(); setImages((p) => p.filter((i) => i.id !== img.id)); }}
-                        style={{ position: "absolute", top: 6, right: 6, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer", fontSize: 12 }}>
-                        ✕
-                      </button>
-                      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10, padding: "4px 8px" }}>
-                        {img.size} KB
+                {/* Récap visuel */}
+                {(form.surface || form.prix || form.nb_pieces) && (
+                  <div style={{ background: "#0f1e35", padding: "20px 24px", display: "flex", gap: "32px", flexWrap: "wrap" }}>
+                    {form.surface && (
+                      <div>
+                        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "9px", fontWeight: "700", letterSpacing: "1.5px", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "4px" }}>Surface</div>
+                        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: "700", color: "#c8a96e" }}>{form.surface} m²</div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {images.length === 0 && (
-                <p style={{ color: "#94a3b8", fontSize: 13, textAlign: "center" }}>Aucune photo ajoutée (optionnel)</p>
-              )}
-            </div>
-          )}
-
-          {/* Boutons navigation */}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 36, paddingTop: 24, borderTop: "1px solid #f1f5f9" }}>
-            <button
-              onClick={() => step > 1 ? setStep((s) => s - 1) : navigate("/vendeur/mes-biens")}
-              style={{ padding: "12px 28px", borderRadius: 12, border: "1.5px solid #e2e8f0", background: "#fff", color: "#475569", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
-            >
-              {step === 1 ? "← Annuler" : "← Précédent"}
-            </button>
-
-            {step < 3 ? (
-              <button onClick={goNext}
-                style={{ padding: "12px 32px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #f59e0b, #ef4444)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 4px 14px rgba(245,158,11,0.35)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.9")}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-              >
-                Suivant →
-              </button>
-            ) : (
-              <button onClick={handleSubmit} disabled={submitting}
-                style={{ padding: "12px 32px", borderRadius: 12, border: "none", background: submitting ? "#94a3b8" : "linear-gradient(135deg, #16a34a, #15803d)", color: "#fff", fontSize: 14, fontWeight: 600, cursor: submitting ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 8 }}
-              >
-                {submitting ? "⏳ Publication..." : "✅ Publier le bien"}
-              </button>
+                    )}
+                    {form.nb_pieces && (
+                      <div>
+                        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "9px", fontWeight: "700", letterSpacing: "1.5px", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "4px" }}>Pièces</div>
+                        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: "700", color: "#c8a96e" }}>{form.nb_pieces}</div>
+                      </div>
+                    )}
+                    {form.prix && (
+                      <div>
+                        <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "9px", fontWeight: "700", letterSpacing: "1.5px", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: "4px" }}>Prix</div>
+                        <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "22px", fontWeight: "700", color: "#c8a96e" }}>{Number(form.prix).toLocaleString()} MAD</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
+
+            {/* STEP 3 */}
+            {step === 3 && (
+              <div>
+                <div
+                  className={`drop-zone${dragOver ? " over" : ""}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => { e.preventDefault(); setDragOver(false); addImages(e.dataTransfer.files); }}
+                  onClick={() => fileRef.current.click()}
+                >
+                  <input ref={fileRef} type="file" multiple accept="image/*" style={{ display: "none" }} onChange={(e) => addImages(e.target.files)} />
+                  <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "#f8f7f4", border: "1px solid rgba(200,169,110,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c8a96e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                  </div>
+                  <p style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "20px", fontWeight: "700", color: "#0f1e35", margin: "0 0 6px" }}>
+                    Glissez vos photos ici
+                  </p>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", color: "#9ca3af", fontSize: "13px", margin: 0 }}>
+                    ou <span style={{ color: "#c8a96e", fontWeight: "600" }}>cliquez pour sélectionner</span> — JPG, PNG
+                  </p>
+                </div>
+
+                {images.length > 0 && (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "20px 0 12px" }}>
+                      <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: "11px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", color: "#9ca3af" }}>
+                        {images.length} photo{images.length > 1 ? "s" : ""} sélectionnée{images.length > 1 ? "s" : ""}
+                      </span>
+                      <button onClick={() => setImages([])}
+                        style={{ background: "none", border: "none", fontFamily: "'DM Sans',sans-serif", fontSize: "11px", color: "#c8a96e", cursor: "pointer", padding: 0 }}>
+                        Tout supprimer
+                      </button>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "10px" }}>
+                      {images.map((img) => (
+                        <div key={img.id} style={{ position: "relative", aspectRatio: "1", border: "1px solid rgba(200,169,110,0.2)", overflow: "hidden" }}>
+                          <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <button onClick={(e) => { e.stopPropagation(); setImages((p) => p.filter((i) => i.id !== img.id)); }}
+                            style={{ position: "absolute", top: "6px", right: "6px", background: "rgba(8,16,34,0.75)", color: "white", border: "none", borderRadius: "50%", width: "22px", height: "22px", cursor: "pointer", fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            ✕
+                          </button>
+                          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(8,16,34,0.6)", color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans',sans-serif", fontSize: "10px", padding: "4px 8px" }}>
+                            {img.size} KB
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {images.length === 0 && (
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", color: "#c4bfb8", fontSize: "13px", textAlign: "center", marginTop: "14px" }}>
+                    Aucune photo ajoutée (optionnel)
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Navigation ── */}
+          <div style={{ padding: "24px 36px 32px", borderTop: "1px solid rgba(200,169,110,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button className="btn-ghost" onClick={() => step > 1 ? setStep((s) => s - 1) : navigate("/vendeur/mes-biens")}>
+              {step === 1 ? "Annuler" : "← Précédent"}
+            </button>
+            {step < 3
+              ? <button className="btn-gold" onClick={goNext}>Suivant →</button>
+              : <button className="btn-gold" onClick={handleSubmit} disabled={submitting}>
+                  {submitting ? "Publication..." : "Publier le bien"}
+                </button>
+            }
           </div>
         </div>
       </main>
