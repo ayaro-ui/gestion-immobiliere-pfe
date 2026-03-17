@@ -16,7 +16,7 @@ class ContactController extends Controller
     public function index(): JsonResponse
     {
         $contacts = Contact::with([
-            'bien:id_bien,titre,type_bien,statut,prix,id_vendeur',
+            'bien:id_bien,titre,type_bien,statut,prix,surface,nb_pieces,adresse,id_vendeur',
             'bien.images:id_image,url_image,id_bien',
             'client:id_user,nom,prenom,email,telephone',
         ])->orderByDesc('date_envoi')->get();
@@ -36,10 +36,8 @@ class ContactController extends Controller
             'id_client' => 'required|exists:utilisateur,id_user',
         ]);
 
-        // Récupérer les infos du client
         $client = \App\Models\Utilisateur::find($validated['id_client']);
 
-        // Vérifier si demande déjà envoyée
         $exists = Contact::where('id_bien', $validated['id_bien'])
                          ->where('id_client', $validated['id_client'])
                          ->where('statut', 'en_attente')
@@ -81,7 +79,6 @@ class ContactController extends Controller
 
         $contact->update(['statut' => $request->statut]);
 
-        // Si accepté → mettre le bien en vendu/loué
         if ($request->statut === 'accepte') {
             $bien = BienImmobilier::find($contact->id_bien);
             if ($bien) {
@@ -111,7 +108,7 @@ class ContactController extends Controller
     public function byVendeur(int $id_vendeur): JsonResponse
     {
         $contacts = Contact::with([
-            'bien:id_bien,titre,type_bien,statut,prix,id_vendeur',
+            'bien:id_bien,titre,type_bien,statut,prix,surface,nb_pieces,adresse,id_vendeur',
             'bien.images:id_image,url_image,id_bien',
             'client:id_user,nom,prenom,email,telephone',
         ])
@@ -123,5 +120,4 @@ class ContactController extends Controller
 
         return response()->json($contacts);
     }
-    
 }
