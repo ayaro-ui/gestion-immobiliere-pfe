@@ -26,6 +26,8 @@ import GestionContacts from './pages/admin/GestionContacts'
 import GestionContrats from './pages/admin/GestionsContrats'
 import Actualitesmarche from './pages/Actualitesmarche'
 import CarteBiens from './pages/acheteur/CarteBiens'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword  from './pages/ResetPassword'
 function App() {
   return (
     <>
@@ -39,6 +41,8 @@ function App() {
         <Route path="/biens/:id"  element={<DetailBien />} />
         <Route path="/contact"    element={<h1>Contact</h1>} />
         <Route path="/actualitesmarche" element={<Actualitesmarche/>} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password"  element={<ResetPassword />} />
 
         {/* ── Vendeur ── */}
         <Route path="/vendeur/dashboard"         element={<DashboardVendeur />} />
@@ -64,7 +68,7 @@ function App() {
         <Route path="/client/favoris"       element={<MesFavoris />} />
         <Route path="/client/mes-contrats"  element={<MesContratsAcheteur />} />
         <Route path="/client/mes-paiements" element={<MesPaiementsAcheteur />} />
-        <Route path="/carte" element={<CarteBiens />} />
+        <Route path="/client/carte-biens" element={<CarteBiens />} />
 
         {/* Anciennes routes (compatibilité) */}
         <Route path="/acheteur/contrats" element={<MesContratsAcheteur />} />
