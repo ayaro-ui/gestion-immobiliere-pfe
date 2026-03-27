@@ -44,7 +44,7 @@ Ce projet est une plateforme web de gestion immobilière permettant aux proprié
 |--------|-------------|
 | Backend | PHP / Laravel (MVC) |
 | Base de données | MySQL |
-| Frontend | HTML5, CSS3, JavaScript, Bootstrap |
+| Frontend | react |
 | Modélisation | UML (cas d'utilisation, classes, séquence) |
 | Gestion de version | Git / GitHub |
 | Environnement local | XAMPP (Apache + MySQL + PHP) |
